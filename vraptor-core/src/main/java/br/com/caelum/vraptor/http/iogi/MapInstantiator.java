@@ -84,6 +84,7 @@ public class MapInstantiator implements Instantiator<Map<String, Object>> {
 				case 'c': targetClass = Calendar.class; break;
 			}
 			
+			// This damn thing doesn't do nothing. Always silently returns null. "Silently" as in "i'm too tired right now to set up logging"
 			return mapElementInstantiator.instantiate(Target.create(targetClass, target.getName()), new Parameters(parameter));
 		}
 		
