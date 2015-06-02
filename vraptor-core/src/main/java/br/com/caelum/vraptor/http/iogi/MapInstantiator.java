@@ -64,6 +64,14 @@ public class MapInstantiator implements Instantiator<Map<String, Object>> {
 		return map;
 	}
 	
+	/**
+	 * Returns an Object for the specified {@link Parameter}. It tries to stick to the Hungarian Notation
+	 * ({@code iSomething} is an {@link Integer}, {@code dAnother} is a {@link Double} and so forth).
+	 * 
+	 * @param target The target
+	 * @param parameter The parameter
+	 * @return The converted value (or the value as a {@link String})
+	 */
 	private Object valueForParameter(final Target<?> target, final Parameter parameter) {
 		final String name = parameter.getName(), targetName = name.substring(name.lastIndexOf(".") + 1);
 		
@@ -118,7 +126,7 @@ public class MapInstantiator implements Instantiator<Map<String, Object>> {
 				return new ConcurrentHashMap<>();
 			}
 			
-			// As a Last Resort, try to instantiate whatever Map is this by calling it's no-args contructor...
+			// As a Last Resort, try to instantiate whatever Map is this by calling it's no-args constructor...
 			return (Map<String, Object>) new Mirror().on(mapClass).invoke().constructor().withoutArgs();
 		}
 		
@@ -127,9 +135,9 @@ public class MapInstantiator implements Instantiator<Map<String, Object>> {
 	
 	/**
 	 * Takes a {@code path.to.something.separated.by.dots} and set it into a {@link HashMap}. <strong>IT OVERRRIDES WHATEVER VALUE IS ALREADY ON THE MAP</strong>.
-	 * @param rootMapClass TODO
-	 * @param path The path
-	 * @param value The value
+	 * @param rootMapClass The kind of {@link Map} that should be created
+	 * @param path The path that should be set ({@code dot.path.to.target})
+	 * @param value The value to set
 	 * 
 	 * @return The newly created {@link Map}
 	 * @see #mapForClass(Class)
@@ -148,7 +156,7 @@ public class MapInstantiator implements Instantiator<Map<String, Object>> {
 		if (log.isDebugEnabled()) { log.debug("currentMap = {}, path = {}, indexOfDot = {}, currentPart = {}", map, path, indexOfDot, currentPart); }
 		
 		if (path.indexOf(".", indexOfDot) >= 0) {
-			if (log.isDebugEnabled()) { log.debug("We still have levels to go. Invoking pathToMap(\"{}\", {})...", path.substring(currentPart.length() + 1), value); }
+			if (log.isDebugEnabled()) { log.debug("We still have levels to go. Invoking pathToMap({}, <current map>, \"{}\", {})...", rootMapClass, path.substring(currentPart.length() + 1), value); }
 			map.put(currentPart, put(rootMapClass, map.get(currentPart), path.substring(currentPart.length() + 1), value));
 		}
 		else {
