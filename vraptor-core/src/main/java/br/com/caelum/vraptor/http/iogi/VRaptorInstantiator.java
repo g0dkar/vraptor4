@@ -58,16 +58,17 @@ public class VRaptorInstantiator implements InstantiatorWithErrors, Instantiator
 	private final ParameterNamesProvider parameterNameProvider;
 	private final HttpServletRequest request;
 	
-	/** 
+	/**
 	 * @deprecated CDI eyes only
 	 */
+	@Deprecated
 	protected VRaptorInstantiator() {
 		this(null, null, null, null);
 	}
 
 	@Inject
-	public VRaptorInstantiator(Converters converters, DependencyProvider provider, 
-			ParameterNamesProvider parameterNameProvider, HttpServletRequest request) {
+	public VRaptorInstantiator(final Converters converters, final DependencyProvider provider,
+			final ParameterNamesProvider parameterNameProvider, final HttpServletRequest request) {
 		this.converters = converters;
 		this.provider = provider;
 		this.parameterNameProvider = parameterNameProvider;
@@ -83,13 +84,14 @@ public class VRaptorInstantiator implements InstantiatorWithErrors, Instantiator
 			objectInstantiator = new NullDecorator(objectInstantiator);
 		}
 		
-		List<Instantiator<?>> instantiatorList = ImmutableList.of(
+		final List<Instantiator<?>> instantiatorList = ImmutableList.of(
 				new RequestAttributeInstantiator(request),
 				new VRaptorTypeConverter(converters),
 				FallbackConverter.fallbackToNull(new StringConverter()),
 				new ArrayAdapter(new ArrayInstantiator(this)),
 				new NullDecorator(new ListInstantiator(this)),
 				new NullDecorator(new SetInstantiator(this)),
+				new NullDecorator(new MapInstantiator(this)),
 				new DependencyInstantiator(),
 				objectInstantiator);
 		multiInstantiator = new MultiInstantiator(instantiatorList);
@@ -100,26 +102,26 @@ public class VRaptorInstantiator implements InstantiatorWithErrors, Instantiator
 	}
 
 	@Override
-	public boolean isAbleToInstantiate(Target<?> target) {
+	public boolean isAbleToInstantiate(final Target<?> target) {
 		return true;
 	}
 
 	@Override
-	public Object instantiate(Target<?> target, Parameters parameters, List<Message> errors) {
+	public Object instantiate(final Target<?> target, final Parameters parameters, final List<Message> errors) {
 		this.errors = errors;
 		return instantiate(target, parameters);
 	}
 
 	@Override
-	public Object instantiate(Target<?> target, Parameters parameters) {
+	public Object instantiate(final Target<?> target, final Parameters parameters) {
 		try {
 			return multiInstantiator.instantiate(target, parameters);
-		} catch(Exception e) {
+		} catch(final Exception e) {
 			handleException(target, e);
 			return null;
 		}
 	}
-	private void handleException(Target<?> target, Throwable e) {
+	private void handleException(final Target<?> target, final Throwable e) {
 		if (e.getCause() == null) {
 			throw new InvalidParameterException("Exception when trying to instantiate " + target, e);
 		} else {
@@ -130,12 +132,12 @@ public class VRaptorInstantiator implements InstantiatorWithErrors, Instantiator
 	private final class DependencyInstantiator implements Instantiator<Object> {
 
 		@Override
-		public Object instantiate(Target<?> target, Parameters params) {
+		public Object instantiate(final Target<?> target, final Parameters params) {
 			return provider.provide(target);
 		}
 
 		@Override
-		public boolean isAbleToInstantiate(Target<?> target) {
+		public boolean isAbleToInstantiate(final Target<?> target) {
 			return target.getClassType().isInterface() && provider.canProvide(target);
 		}
 
@@ -144,50 +146,50 @@ public class VRaptorInstantiator implements InstantiatorWithErrors, Instantiator
 	private final class VRaptorTypeConverter implements Instantiator<Object> {
 		private final Converters converters;
 
-		public VRaptorTypeConverter(Converters converters) {
+		public VRaptorTypeConverter(final Converters converters) {
 			this.converters = converters;
 		}
 		
 		@Override
-		public boolean isAbleToInstantiate(Target<?> target) {
+		public boolean isAbleToInstantiate(final Target<?> target) {
 			return !String.class.equals(target.getClassType()) && converters.existsFor(target.getClassType());
 		}
 
 		@Override
-		public Object instantiate(Target<?> target, Parameters parameters) {
+		public Object instantiate(final Target<?> target, final Parameters parameters) {
 			try {
 				if(isSupportedCollection(target)) {
 					return multiInstantiator.instantiate(target, parameters);
 				}
 				
-				Parameter parameter = parameters.namedAfter(target);
+				final Parameter parameter = parameters.namedAfter(target);
 				
 				return converterForTarget(target).convert(parameter.getValue(), target.getClassType());
-			} catch (ConversionException ex) {
+			} catch (final ConversionException ex) {
 				errors.add(ex.getValidationMessage().withCategory(target.getName()));
-			} catch (IllegalStateException e) {
+			} catch (final IllegalStateException e) {
 				return setPropertiesAfterConversions(target, parameters);
 			}
 			return null;
 		}
 
-		private boolean isSupportedCollection(Target<?> target) {
-			return List.class.isAssignableFrom(target.getClassType()) 
+		private boolean isSupportedCollection(final Target<?> target) {
+			return List.class.isAssignableFrom(target.getClassType())
 				|| Set.class.isAssignableFrom(target.getClassType())
 				|| Map.class.isAssignableFrom(target.getClassType());
 		}
 
-		private Object setPropertiesAfterConversions(Target<?> target, Parameters parameters) {
-			List<Parameter> params = parameters.forTarget(target);
-			Parameter parameter = findParamFor(params, target);
+		private Object setPropertiesAfterConversions(final Target<?> target, final Parameters parameters) {
+			final List<Parameter> params = parameters.forTarget(target);
+			final Parameter parameter = findParamFor(params, target);
 
-			Object converted = converterForTarget(target).convert(parameter == null? null : parameter.getValue(), target.getClassType());
+			final Object converted = converterForTarget(target).convert(parameter == null? null : parameter.getValue(), target.getClassType());
 
 			return new NewObject(this, parameters.focusedOn(target), converted).valueWithPropertiesSet();
 		}
 
-		private Parameter findParamFor(List<Parameter> params, Target<?> target) {
-			for (Parameter parameter : params) {
+		private Parameter findParamFor(final List<Parameter> params, final Target<?> target) {
+			for (final Parameter parameter : params) {
 				if (parameter.getName().equals(target.getName())) {
 					return parameter;
 				}
@@ -196,7 +198,7 @@ public class VRaptorInstantiator implements InstantiatorWithErrors, Instantiator
 		}
 		
 		@SuppressWarnings("unchecked")
-		private Converter<Object> converterForTarget(Target<?> target) {
+		private Converter<Object> converterForTarget(final Target<?> target) {
 			return (Converter<Object>) converters.to(target.getClassType());
 		}
 	}

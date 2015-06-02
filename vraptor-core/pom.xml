@@ -346,4 +346,5 @@
 		</plugins>
 	</reporting>
 
+	<version>4.2.0-RC3-SNAPSHOT</version>
 </project>
